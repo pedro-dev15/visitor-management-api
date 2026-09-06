@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Empresa/administradora que usa o sistema
+model Company {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  buildings Building[]
+}
+
+// Prédio, vinculado a uma empresa
+model Building {
+  id        String   @id @default(uuid())
+  name      String
+  address   String
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  createdAt DateTime @default(now())
+
+  hosts  Host[]
+  visits Visit[]
+}
+
+// Funcionário que autoriza visitas (usuário do painel)
+model Host {
+  id         String   @id @default(uuid())
+  name       String
+  email      String   @unique
+  password   String
+  buildingId String
+  building   Building @relation(fields: [buildingId], references: [id])
+  createdAt  DateTime @default(now())
+
+  visits Visit[]
+}
+
+// Pessoa/visitante — separado da visita para reaproveitar cadastro entre prédios
+model Person {
+  id        String   @id @default(uuid())
+  name      String
+  document  String   @unique // CPF, por exemplo
+  email     String
+  phone     String
+  createdAt DateTime @default(now())
+
+  visits Visit[]
+}
+
+enum VisitStatus {
+  PENDING
+  AUTHORIZED
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+}
+
+// Cada visita agendada
+model Visit {
+  id          String      @id @default(uuid())
+  personId    String
+  person      Person      @relation(fields: [personId], references: [id])
+  buildingId  String
+  building    Building    @relation(fields: [buildingId], references: [id])
+  hostId      String
+  host        Host        @relation(fields: [hostId], references: [id])
+  status      VisitStatus @default(PENDING)
+  qrToken     String?     @unique
+  expiresAt   DateTime?
+  scheduledAt DateTime
+  checkedInAt DateTime?
+  createdAt   DateTime    @default(now())
+}
